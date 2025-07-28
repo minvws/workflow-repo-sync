@@ -1,0 +1,82 @@
+name: Repo sync
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: 'Target repository (format git@github.com:owner/repo.git)'
+        required: true
+        type: string
+      branch:
+        description: 'Branch to sync'
+        required: false
+        type: string
+        default: 'main'
+      shadow_branch:
+        description: 'private shadow branch of public repository'
+        required: false
+        type: string
+        default: 'main-public'
+      ref:
+        description: 'Ref to sync'
+        required: false
+        type: string
+        default: 'main'
+      push_tags:
+        description: 'If tags should be pushed to the target repository'
+        required: false
+        type: boolean
+        default: false
+      allow_public_dependabot:
+        description: 'Allow dependabot.yml on the public repository'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      REPO_SYNC_PUSH_KEY:
+        required: true
+
+jobs:
+  sync-repo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+        with:
+          ref: '${{ inputs.shadow_branch }}'
+          fetch-depth: '0'
+
+      - name: Run SSH agent
+        run: |
+          eval "$(ssh-agent -s)"
+          echo SSH_AUTH_SOCK="$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo SSH_AGENT_PID="$SSH_AGENT_PID" >> "$GITHUB_ENV"
+
+      - name: Add SSH key
+        run: |
+          mkdir -p /home/runner/.ssh
+          echo "${{ secrets.REPO_SYNC_PUSH_KEY }}" > /home/runner/.ssh/github_actions
+          chmod 600 /home/runner/.ssh/github_actions
+          ssh-add /home/runner/.ssh/github_actions
+
+      - name: Sync repo
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "<>"
+
+          git merge --no-edit origin/${{ inputs.branch }}
+          git push origin HEAD:${{ inputs.shadow_branch }}
+
+          git config --unset-all http.https://github.com/.extraheader
+
+          if [ $? -ne 0 ]; then
+            echo 'Failed to merge without conflicts' && exit 1
+          fi
+          if [ "${{ inputs.allow_public_dependabot }}" == "false" ]; then
+            if [ -e ".github/dependabot.yml" ]; then
+              echo 'Dependabot should not run on the public repo. Please remove this file' && exit 1
+            fi
+          fi
+          git remote add public ${{ inputs.repository }}
+          git push ${{ inputs.push_tags && '--tags' || '' }} public ${{ inputs.shadow_branch }}:${{ inputs.ref }}
