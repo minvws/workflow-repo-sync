@@ -1,12 +1,6 @@
 # Repo sync
 
-This pipeline synchronizes:
-
-- a branch on a private repository with a branch on a public repository by merging all commits from the configured branch to the shadow branch.
-  This shadow branch is then pushed to the public repository;
-- all tags on the private repository to the public repository.
-- The pipeline is designed to be as generic as possible, so they can be easily reused in any project.
-- This repository is a part of the generic GitHub Actions pipeline collection that can be used in any project.
+This repository provides a reusable GitHub Workflow which synchronizes a branch on a private repository with a branch on a public repository by merging all commits from the configured branch to the shadow branch. This shadow branch is then pushed to the public repository. All tags on the private repository can optionally be pushed the public repository as well.
 
 > [!CAUTION]
 > This pipeline pushes all commits from a branch on the private repository to a branch on the public repository.
@@ -14,14 +8,8 @@ This pipeline synchronizes:
 
 ## Usage
 
-The repo sync workflow is called from a workflow in the private repository. Here is a basic example of how you can integrate it in your project.
+To use the workflow, add it to the **private** repository like so:
 
-<details>
-  <summary>Example workflow</summary>
-
-This workflow is executed automatically when a tag is pushed and can also be executed manually from the actions tab `workflow_dispatch`.
-
-In the code below you need to replace `<repo>` with the repo name and `<branch>` with the branch you want to sync. Most of the time the branch is `main`.
 
 ```yml
 name: Public repo sync
@@ -34,7 +22,7 @@ on:
 
 jobs:
   sync-public:
-    uses: minvws/workflow-repo-sync/.github/workflows/repo-sync.yml@main
+    uses: minvws/workflow-repo-sync/.github/workflows/repo-sync.yml@v1
     with:
       repository: git@github.com:minvws/<repo>.git
       ref: <branch>
@@ -43,15 +31,20 @@ jobs:
       REPO_SYNC_PUSH_KEY: ${{ secrets.REPO_SYNC_PUSH_KEY }}
 ```
 
-</details>
+Replace `<repo>` with the repo name and `<branch>` with the branch you want to sync. Most of the time the branch is `main`.
+
+In this basic example, the workflow is executed automatically when a tag is pushed. And thanks to the `workflow_dispatch` trigger it can also be executed manually from the repository's Actions tab.
 
 ### Configuration
 
-The action has inputs and secrets. The inputs are:
+This workflow has the following inputs:
 
-- repository: An SSH URL, like `git@github.com:user/repo.git`
-- ref: The ref (e.g. branch) that needs to be synced
-- push_tags: Boolean if you want to push tags or not
+- `repository` (**required**): An SSH URL, like `git@github.com:user/repo.git`.
+- `branch` (optional): Branch to sync. Default: `'main'`.
+- `shadow_branch` (optional): Private shadow branch of public repository. Default: `'main-public'`.
+- `ref` (optional): Ref to sync. Default: `'main'`.
+- `push_tags` (optional): If tags should be pushed to the target repository. Default: `'false'`.
+- `allow_public_dependabot` (optional): Allow dependabot.yml on the public repository. Default: `'false'`.
 
 The secret that is needed is `REPO_SYNC_PUSH_KEY`. This is a SSH Key. In the public repository a deployment key with Read-write permissions can be configured.
 The private key should be added to the secrets of the private repository.
@@ -62,3 +55,11 @@ More information about deployment keys can be found in [the GitHub documentation
 
 If you want to contribute a new pipeline, please check the reusable workflow guidelines in the
 [GitHub documentation](https://docs.github.com/en/actions/using-workflows/reusing-workflows#creating-a-reusable-workflow).
+
+## License
+
+This repository is released under the EUPL 1.2 license. [See LICENSE.txt](./LICENSE.txt) for details.
+
+## Part of iCore
+
+This package is part of the iCore project.
