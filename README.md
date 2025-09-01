@@ -1,5 +1,12 @@
 # Repo sync
 
+> [!WARNING]
+> This repository is no longer maintained.
+> 
+> We have migrated to automated synchronization solutions outside of GitHub Workflows.
+> This workflow-based approach is no longer actively developed or supported.
+> If you wish to continue using this solution, please fork this repository to maintain your own version.
+
 This repository provides a reusable GitHub Workflow which synchronizes a branch on a private repository with a branch on a public repository by merging all commits from the configured branch to the shadow branch. This shadow branch is then pushed to the public repository. All tags on the private repository can optionally be pushed the public repository as well.
 
 > [!CAUTION]
